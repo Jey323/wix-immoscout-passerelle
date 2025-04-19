@@ -1,8 +1,8 @@
-import { OAuth } from 'oauth';
-import { parseStringPromise } from 'xml2js';
+const { OAuth } = require('oauth');
+const { parseStringPromise } = require('xml2js');
 
-// Utilisation de la syntaxe d'export ESM
-export const handler = async (event, context) => {
+// Revenir à la syntaxe CommonJS
+exports.handler = async (event, context) => {
   // 1. Récupérer les clés depuis les variables d'environnement
   const { 
     IMMO_CONSUMER_KEY,
