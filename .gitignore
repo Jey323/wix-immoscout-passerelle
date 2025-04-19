@@ -1,0 +1,21 @@
+# Fichiers de dépendances Node
+node_modules/
+
+# Fichiers d'environnement
+.env
+
+# Fichiers de logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Script local pour obtenir les tokens OAuth Immoscout
+get_immoscout_tokens.js
+
+# Répertoires de build (si applicable)
+# dist/
+# build/ 

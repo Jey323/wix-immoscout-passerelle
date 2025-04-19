@@ -1,0 +1,9 @@
+[build]
+  # Laissez ces lignes commentées si vous n'avez pas de commande de build spécifique
+  # ou de répertoire public à déployer autre que la racine.
+  # command = "npm run build" 
+  # publish = "public"
+
+[functions]
+  # Indique à Netlify que vos fonctions serveur se trouvent dans ce dossier.
+  directory = "netlify/functions" 
