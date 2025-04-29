@@ -1,9 +1,12 @@
 [build]
-  # Laissez ces lignes commentées si vous n'avez pas de commande de build spécifique
-  # ou de répertoire public à déployer autre que la racine.
-  # command = "npm run build" 
-  # publish = "public"
+  functions = "netlify/functions" # Indique à Netlify où trouver les fonctions
+  # Si vous utilisez une version spécifique de Node.js
+  # [functions]
+  #   node_bundler = "esbuild"
+  #   [functions.environment]
+  #     NODE_VERSION = "18" # Ou la version que vous préférez
 
-[functions]
-  # Indique à Netlify que vos fonctions serveur se trouvent dans ce dossier.
-  directory = "netlify/functions" 
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
