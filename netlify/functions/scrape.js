@@ -7,72 +7,60 @@ const IMMOSCOUT_PROFILE_URL = 'https://www.immoscout24.ch/regie/h268686/s-immobi
 
 exports.handler = async function(event, context) {
     try {
-        // 1. Récupérer le HTML de la page ImmoScout
         const { data } = await axios.get(IMMOSCOUT_PROFILE_URL, {
-             // Ajouter des headers peut parfois aider à éviter les blocages simples
-             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            headers: {
+                // --- En-têtes importants pour essayer de ressembler à un navigateur ---
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36', // Un User-Agent de Chrome récent
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7', // Adaptez si besoin (ex: de-CH)
+                'Accept-Encoding': 'gzip, deflate, br', // Indique qu'on accepte la compression
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none', // Ou 'cross-site' si la navigation vient d'ailleurs
+                'Sec-Fetch-User': '?1',
+                'Cache-Control': 'max-age=0',
+                // Ajouter un Referer peut parfois aider, mais peut aussi être suspect si mal utilisé
+                // 'Referer': 'https://www.google.com/',
             }
         });
 
-        // 2. Charger le HTML dans Cheerio
         const $ = cheerio.load(data);
 
-        // 3. Identifier les Sélecteurs CSS (C'EST LA PARTIE CRUCIALE ET FRAGILE)
-        //    -> Inspectez la page ImmoScout avec les outils de développement de votre navigateur
-        //    -> Trouvez les éléments HTML qui contiennent chaque annonce et les infos spécifiques.
-        //    -> Remplacez les '.selector-...' ci-dessous par les vrais sélecteurs CSS.
-
+        // ... (Le reste de votre code d'extraction avec Cheerio reste identique) ...
         const properties = [];
-        // Exemple : si chaque bien est dans une <article class="result-list-entry">
-        $('.result-list-entry__data, .result-list-item__infos--standard').each((index, element) => { // Adaptez ce sélecteur principal !
-            const $element = $(element);
+        $('.result-list-entry__data, .result-list-item__infos--standard').each((index, element) => {
+             // ... (votre logique d'extraction ici) ...
+             const $element = $(element);
+             const title = $element.find('h3 a, .heading-2 a').first().text().trim();
+             const price = $element.find('.font-bold.font-xl-s').first().text().trim();
+             let imageUrl = $element.find('.result-list-entry__gallery img').attr('src') || $element.find('.result-list-entry__gallery img').attr('data-src');
+             let propertyUrl = $element.find('a.result-list-entry__link, a.result-list-item__link').attr('href');
 
-            // Trouvez le titre (souvent dans un h3 ou h4)
-            const title = $element.find('h3 a, .heading-2 a').first().text().trim(); // Adaptez
-
-            // Trouvez le prix (peut être dans un div/span spécifique)
-            const price = $element.find('.font-bold.font-xl-s').first().text().trim(); // Adaptez
-
-            // Trouvez l'URL de l'image principale (souvent une balise <img> dans un conteneur)
-            // Attention aux images chargées dynamiquement (data-src)
-            let imageUrl = $element.find('.result-list-entry__gallery img').attr('src'); // Adaptez
-             if (!imageUrl) {
-                imageUrl = $element.find('.result-list-entry__gallery img').attr('data-src'); // Essayer data-src
+             if (propertyUrl && !propertyUrl.startsWith('http')) {
+                 propertyUrl = new URL(propertyUrl, 'https://www.immoscout24.ch').href;
              }
+              if (imageUrl && imageUrl.startsWith('/')) {
+                  imageUrl = new URL(imageUrl, 'https://www.immoscout24.ch').href;
+              }
 
-            // Trouvez le lien vers l'annonce (souvent sur le titre ou l'image)
-            let propertyUrl = $element.find('a.result-list-entry__link, a.result-list-item__link').attr('href'); // Adaptez
-
-            // Assurer que l'URL est absolue
-            if (propertyUrl && !propertyUrl.startsWith('http')) {
-                propertyUrl = new URL(propertyUrl, 'https://www.immoscout24.ch').href; // Ajustez le domaine si nécessaire (.fr, .de)
-            }
-
-             // Assurer que l'URL de l'image est absolue si nécessaire (moins courant)
-            if (imageUrl && imageUrl.startsWith('/')) {
-                 imageUrl = new URL(imageUrl, 'https://www.immoscout24.ch').href; // Ajustez le domaine
-            }
-
-
-            // Ajouter le bien à la liste si on a les infos essentielles
-            if (title && propertyUrl) {
-                properties.push({
-                    title: title,
-                    price: price || 'Prix sur demande', // Mettre une valeur par défaut
-                    imageUrl: imageUrl || null, // Peut être null si non trouvée
-                    url: propertyUrl
-                });
-            }
+             if (title && propertyUrl) {
+                 properties.push({
+                     title: title,
+                     price: price || 'Prix sur demande',
+                     imageUrl: imageUrl || null,
+                     url: propertyUrl
+                 });
+             }
         });
 
-        // 4. Renvoyer les données en JSON
+
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
-                // Important pour permettre à Wix d'appeler cette fonction depuis le navigateur
-                'Access-Control-Allow-Origin': '*', // Pour simplifier, ou mettez l'URL de votre site Wix
+                'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': 'Content-Type',
             },
             body: JSON.stringify(properties),
@@ -80,10 +68,24 @@ exports.handler = async function(event, context) {
 
     } catch (error) {
         console.error('Erreur de scraping:', error.message);
-        // Renvoyer une erreur claire
+        // Si l'erreur vient d'axios et a une réponse (comme le 403)
+        if (error.response) {
+             console.error('Status Code:', error.response.status);
+             console.error('Headers:', error.response.headers);
+             // Retourner un message plus spécifique si possible
+              return {
+                statusCode: error.response.status, // Renvoyer le code d'erreur réel
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                },
+                body: JSON.stringify({ error: 'ImmoScout a refusé l\'accès (Probablement blocage de bot).', details: `Request failed with status code ${error.response.status}` }),
+             };
+        }
+        // Erreur générique si autre chose s'est mal passé
         return {
             statusCode: 500,
-             headers: {
+            headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
             },
